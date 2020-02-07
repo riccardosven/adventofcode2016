@@ -7,11 +7,7 @@ data Triangle =
 
 -- Check whether a Triangle is possible
 isPossible :: Triangle -> Bool
-isPossible (Triangle x1 x2 x3)
-  | x1 >= x2 + x3 = False
-  | x2 >= x1 + x3 = False
-  | x3 >= x1 + x2 = False
-  | otherwise = True
+isPossible (Triangle x1 x2 x3) = x1 + x2 > x3 && x2 + x3 > x1 && x1 + x3 > x2
 
 -- Turns a list of strings into a triangle
 parseTriangle :: [String] -> Triangle
