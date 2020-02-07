@@ -1,3 +1,5 @@
+module Main where
+
 import           Data.Hashable
 import           Data.HashSet
 import           Data.Maybe

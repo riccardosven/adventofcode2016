@@ -1,3 +1,5 @@
+module Main where 
+
 import           Data.Char (isDigit)
 import           Data.Char
 import           Data.List
