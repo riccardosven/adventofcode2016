@@ -1,16 +1,9 @@
 module Main where
 
 import           Data.Char (isDigit, isSpace)
+import Common (getNumbers)
  -- Extract numbers from a string
 
-getNumbers "" = []
-getNumbers x =
-  if length first > 0
-    then (read :: String -> Int) first : getNumbers second
-    else getNumbers second
-  where
-    (first, second) = span isDigit . dropWhile (not . isDigit) $ x
- -- Parses a pattern of the type (AxB)XXXYYY and returns (A, B, XXX, YYY)
 
 parsePattern :: String -> (Int, Int, String, String)
 parsePattern xs = (a, b, first, second)
