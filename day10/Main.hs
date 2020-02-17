@@ -5,6 +5,7 @@ import           Data.List
 import qualified Data.Map   as M
 import           Data.Maybe
 import           Text.Regex
+import Control.Monad
  -- The output type describes who should receive the token and the value of the token
 
 data Value = ToBot
@@ -23,6 +24,8 @@ data Bot = Bot
     , chips :: [Int] -- the chips currently in possession of this robot
     }
     deriving (Eq, Show)
+
+type Bots = M.Map Int Bot
 
 parseBot :: String -> Maybe (Int, Bot)
 parseBot xs =
@@ -50,22 +53,19 @@ parseValue xs =
     "val" -> let w = getNumbers xs in Just $ ToBot (w !! 1) (Just (w !! 0))
     _ -> Nothing
 
-processValues :: [(Int, Bot)] -> [Value] -> [(Int, Bot)]
+processValues :: Bots -> [Value] -> Bots
 processValues bs [] = bs
 processValues bs ((ToOutput _ _):vs) = processValues bs vs
 processValues _ ((ToBot _ Nothing):_) = error "WTF?!"
-processValues bs ((ToBot i (Just x)):vs) =
-  processValues (first ++ [(i, b')] ++ tail second) vs
+processValues bs ((ToBot i (Just x)):vs) = processValues bs' vs
   where
-    (first, second) = span ((/= i) . fst) bs
-    b = snd $ head second
-    b' = b {chips = x : chips b}
+      bs' = M.adjust (\o -> o {chips = x : chips o}) i bs
 
-processBot :: (Int, Bot) -> ([Value], (Int, Bot))
-processBot (i, b)
-  | length xs < 2 = ([], (i, b))
-  | length xs > 2 = error "WTF?!"
-  | otherwise = ([lval, hval], (i, b'))
+processBot :: [Value] -> Bot ->  ([Value],  Bot)
+processBot prev b 
+    | length xs < 2 = (prev, b)
+    | length xs > 2 =error "WTF?!"
+    | otherwise = (prev ++ [lval, hval], b')
   where
     xs = chips b
     [xl, xh] = sort xs
@@ -73,48 +73,45 @@ processBot (i, b)
     hval = (high b) {val = Just xh}
     b' = b {chips = [], low = lval, high = hval}
 
-processBots :: [(Int, Bot)] -> ([Value], [(Int, Bot)])
-processBots bs = (concat vs, bs')
-  where
-    (vs, bs') = unzip $ map processBot bs
+processBots :: Bots -> ([Value], Bots)
+processBots bs = M.mapAccum processBot [] bs
 
-process :: ([(Int, Bot)], [Value]) -> ([(Int, Bot)], [Value])
+process :: (Bots, [Value]) -> (Bots, [Value])
 process (b, []) = (b, [])
 process (b, v) = process (b'', v'')
   where
     b' = processValues b v
     (v'', b'') = processBots b'
 
-star1 :: [(Int, Bot)] -> IO ()
-star1 [] = return ()
-star1 ((i, b):bs) = do
-  if val (low b) == Just 17 && val (high b) == Just 61
-    then do
-      putStr "Solution: "
-      putStrLn $ show i
-    else do
-      star1 bs
+star1 :: Bots -> IO ()
+star1 bs = flip forM_ checkSolution  $ zip [0..] (M.elems bs)
+    where
+        checkSolution :: (Int, Bot) -> IO ()
+        checkSolution (i, b) =
+            if val (low b) == Just 17 && val (high b) == Just 61
+            then do
+                putStrLn $ "Solution: " ++ show i
+            else do
+                return ()
 
-star2 :: [(Int, Bot)] -> IO ()
-star2 bs = go 1 bs
+star2 :: Bots -> IO ()
+star2 bs = putStrLn $ "Solution: " ++ (show n)
   where
-    go :: Int -> [(Int, Bot)] -> IO ()
-    go n [] = putStrLn $ "Solution: " ++ (show n)
-    go n ((_, b'):bs') =
-      case b' of
-        Bot (ToOutput 0 (Just x)) _ _ -> go (n * x) bs'
-        Bot (ToOutput 1 (Just x)) _ _ -> go (n * x) bs'
-        Bot (ToOutput 2 (Just x)) _ _ -> go (n * x) bs'
-        Bot _ (ToOutput 0 (Just x)) _ -> go (n * x) bs'
-        Bot _ (ToOutput 1 (Just x)) _ -> go (n * x) bs'
-        Bot _ (ToOutput 2 (Just x)) _ -> go (n * x) bs'
-        Bot _ _ _                     -> go n bs'
+      n = M.foldl checkSolution 1 bs
+      checkSolution :: Int -> Bot -> Int
+      checkSolution i (Bot (ToOutput 0 (Just x)) _ _)  = i * x
+      checkSolution i (Bot (ToOutput 1 (Just x)) _ _)  = i * x
+      checkSolution i (Bot (ToOutput 2 (Just x)) _ _)  = i * x
+      checkSolution i (Bot _ (ToOutput 0 (Just x)) _)  = i * x
+      checkSolution i (Bot _ (ToOutput 1 (Just x)) _)  = i * x
+      checkSolution i (Bot _ (ToOutput 2 (Just x)) _)  = i * x
+      checkSolution i (Bot _ _ _                    )  = i
 
 main :: IO ()
 main = do
   s <- readFile "input"
-  let robots = catMaybes . map parseBot . lines $ s
-  let values = catMaybes . map parseValue . lines $ s
+  let robots = M.fromList . catMaybes . map parseBot . lines $ s
+  let values =  catMaybes . map parseValue . lines $ s
   let (robots', _) = process (robots, values)
   star1 robots'
   star2 robots'
