@@ -26,7 +26,7 @@ isWall (x, y) =
 isValid :: Pos -> Bool
 isValid (x, y) = x >= 0 && y >= 0
 
--- | Nondeterministinc step: return the set of paths that are one-step extensions
+-- | Nondeterministic step: return the set of paths that are one-step extensions
 -- | of the current path (together with the visited nodes)
 oneStep :: (Path, Seen) -> [(Path, Seen)]
 oneStep (p, seen) = do
