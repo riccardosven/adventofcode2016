@@ -1,20 +1,7 @@
 module Main where
 
-import           Crypto.Hash.MD5 (hash)
-import qualified Data.ByteString.Char8      as BS
-import           Data.Char (ord)
+import Common (computeHash)
 import           Numeric                    (showHex)
-
--- Decodes unicode characters (16 bit) from the ByteString into pairs of 8bit integers
-decodeChars :: [Char] -> [Int]
-decodeChars [] = []
-decodeChars (x:xs) = c1 : c2 : decodeChars xs
-  where
-    (c1, c2) = divMod (ord x) 16
-
--- Computes the hash of the input string
-computeHash :: String -> [Int]
-computeHash = decodeChars . BS.unpack . hash . BS.pack
 
 -- Brute forces the password using an accumulator
 findPass :: String -> Int -> Int -> String -> String
